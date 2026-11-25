@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ブロック読書ログ</title>
+<link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f6f1;--surface:#fffefb;--ink:#1f2328;--sub:#6a6f76;--line:#d9d6cb;--c0:#e9b44c;--c1:#5fa8a0;--c2:#d9776b;--c3:#7b8fd1;--c4:#9bb86a;--cn:#a9a69b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181b;--surface:#212328;--ink:#ecebe6;--sub:#9a9da3;--line:#3a3d44}}
+:root[data-theme="dark"]{--bg:#17181b;--surface:#212328;--ink:#ecebe6;--sub:#9a9da3;--line:#3a3d44}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Hiragino Sans","Yu Gothic",Meiryo,system-ui,sans-serif;
+background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:28px 28px;background-attachment:fixed}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1,h2{font-family:"Klee One","Hiragino Maru Gothic ProN",serif;margin:0}
+h1{font-size:22px}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 16px;color:var(--sub);font-size:13px}
+.steps span{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:2px 10px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px}
+.panel h2{font-size:17px;margin-bottom:8px}
+input,textarea,select,button{font:inherit;color:var(--ink)}
+input,textarea,select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+textarea{resize:vertical}
+button{background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+button.ghost{background:transparent;color:var(--sub);border:1px solid var(--line);padding:2px 8px;font-size:12px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--c3);outline-offset:1px}
+.row{display:flex;gap:8px;align-items:flex-start}
+.boxes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.box{border:2px solid var(--bc,var(--line));border-radius:10px 10px 10px 10px;background:var(--surface);padding:10px;display:flex;flex-direction:column;gap:8px}
+.box.over{background:color-mix(in srgb,var(--bc) 15%,var(--surface))}
+.box .name{font-family:"Klee One",serif;font-weight:600;border:0;border-bottom:2px solid var(--bc);border-radius:0;background:transparent;font-size:16px}
+.drop{min-height:56px;display:flex;flex-direction:column;gap:6px}
+.blk{background:color-mix(in srgb,var(--bc,var(--cn)) 18%,var(--surface));border:1px solid var(--line);border-left:6px solid var(--bc,var(--cn));border-radius:6px;padding:6px 8px;cursor:grab;font-size:14px}
+.blk.src{outline:2px dashed var(--ink)}
+.blk .tools{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.blk select{width:auto;padding:1px 4px;font-size:12px}
+.chip{font-size:11px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--sub)}
+.lbl{font-size:12px;color:var(--sub);margin-bottom:2px}
+.empty{color:var(--sub);font-size:13px}
+#md{min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.hint{font-size:12px;color:var(--sub);margin:6px 0 0}
+.qc{border:1px dashed var(--ink);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--bg)}
+.qc .qt{font-family:"Klee One",serif;font-weight:600;margin-bottom:4px}
+.qc .qs{font-size:12px;color:var(--sub)}
+.warn{color:var(--c2);font-size:13px;margin-top:6px}
+.tabs{display:flex;gap:6px;margin-bottom:8px}
+.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--ink);color:var(--bg)}
+body.quick #qPanel,body.quick #boardPanel,body.quick #boxes,body.quick #boxHead,body.quick #boxHint,body.quick #tabs,body.quick #poolHint,body.quick #steps,body.quick .blk select,body.quick .blk .lk,body.quick .blk .chip{display:none}
+body:not(.quick) #quickPanel{display:none}
+#board{position:relative;height:480px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px}
+#board svg.bl{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+#board svg line{stroke:var(--sub);stroke-width:2}
+.bc{position:absolute;width:190px;background:color-mix(in srgb,var(--bc) 18%,var(--surface));border:1px solid var(--line);border-left:6px solid var(--bc);border-radius:6px;padding:6px 8px;font-size:13px;cursor:grab;touch-action:none;user-select:none;z-index:1}
+.bc.src{outline:2px dashed var(--ink)}
+.bc .bt{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.bc button{margin-top:4px}
+#board .ll{position:absolute;transform:translate(-50%,-50%);z-index:2;display:flex;gap:2px;align-items:center;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:1px 2px}
+#board .ll select{width:auto;padding:1px 2px;font-size:12px;border:0}
+#board .ll button{margin:0}
+.nc{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--bg)}
+.nc textarea{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>ブロック読書ログ</h1>
+<div class="steps" id="steps"><span>集める</span><span>3〜5の箱に分ける</span><span>つながりを見つける</span><span>要点を一言で</span><span>自分の言葉で説明</span><span>Markdownに出す</span></div>
+<div class="tabs" id="viewTabs" style="margin-bottom:10px"></div>
+
+<div class="panel">
+<h2>本・テーマ</h2>
+<div class="row" style="margin-bottom:8px;flex-wrap:wrap"><select id="bookSel" style="flex:1;min-width:140px" aria-label="本を選ぶ"></select><button class="ghost" id="newBook">＋新しい本</button><button class="ghost" id="delBook">この本を削除</button></div>
+<input id="title" placeholder="例：『読書の技法』" aria-label="本・テーマ">
+</div>
+
+<div class="panel" id="poolPanel">
+<h2>集める</h2>
+<div class="row"><select id="newType" style="width:auto" aria-label="ブロックの種類"></select><textarea id="newText" rows="2" placeholder="気になった一文・メモ・疑問を1つずつ書く"></textarea><button id="addBtn">ブロックにする</button></div>
+<p class="hint"><label><input type="checkbox" id="split" checked style="width:auto"> 改行ごとにブロックを分ける</label>（まとめて貼り付けOK・Ctrl/⌘+Enterで追加） <span id="addMsg"></span></p>
+<p class="hint" id="poolHint">未整理のブロックはここに並びます。箱へドラッグするか、ブロックの「箱へ」から移動できます。</p>
+<div class="drop" id="pool" data-box="" style="margin-top:8px"></div>
+</div>
+
+<div class="panel" id="quickPanel"><h2>今日の一言</h2><input id="oneLine" placeholder="一言で言うと？" aria-label="今日の一言"><p class="hint">箱に入れたブロックは「じっくり」で見られます。気軽に集めたメモは、あとで箱に分けて深められます。</p></div>
+<div class="panel" id="qPanel">
+<div class="row" style="justify-content:space-between;align-items:center"><h2>いまの問い</h2><button class="ghost" id="resetQ">パスした問いを戻す</button></div>
+<p class="hint" style="margin:0 0 8px">問いは、引いたときや選んだときだけ出ます。答えはブロックになります。「要点」「結論」「まとめ」の問いは、その欄に書き込まれます。</p>
+<div id="qs"></div>
+</div>
+<div class="row" id="boxHead" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+<h2>分ける・つなげる・言い換える</h2>
+<div><button class="ghost" id="addBox">箱を足す</button> <button class="ghost" id="delBox">最後の箱を消す</button></div>
+</div>
+<p class="hint" id="boxHint" style="margin:0 0 10px">🔗を押したブロックと、次に🔗を押したブロックがつながります（もう一度でほどけます）。</p>
+<div class="boxes" id="boxes"></div>
+<div class="panel" id="boardPanel" style="margin-top:14px"><h2>つなげる盤面</h2><p class="hint" style="margin:0 0 8px">カードをドラッグして動かし、🔗を2つのカードで順に押すと線で結ばれます。線の上のメニューでラベルを選び、▶で向きを切り替えます（向きは矢印で表示）。</p>
+<div class="lbl">ラベルの候補（、で区切って自由に変えられます）</div><input id="labelSet" aria-label="ラベルの候補" style="margin-bottom:8px"><div id="board"></div></div>
+
+<div class="panel" style="margin-top:14px">
+<h2>Markdown</h2>
+<div class="tabs" id="tabs"></div>
+<div id="art" style="display:none;margin-bottom:8px"><div class="lbl">結論（記事）</div><textarea id="concl" rows="2"></textarea><div class="lbl" style="margin-top:6px">まとめ（記事）</div><textarea id="summ" rows="2"></textarea></div>
+<textarea id="md" readonly aria-label="Markdown出力"></textarea>
+<div id="notes" style="display:none"></div>
+<div id="warn" class="warn"></div>
+<div class="row" style="margin-top:8px"><button id="copy">コピー</button><span id="msg" class="hint"></span></div>
+</div>
+<div class="panel" id="dataPanel"><h2>バックアップ（書き出し・読み込み）</h2>
+<p class="hint" style="margin:0 0 8px">全部の本を、1つのデータとして書き出せます。別の端末へ移すときや、念のための保存に使います。</p>
+<div class="row" style="margin-bottom:8px"><button class="ghost" id="expData">データを作る</button><button class="ghost" id="expCopy">コピー</button></div>
+<textarea id="dataOut" rows="3" readonly aria-label="書き出したデータ"></textarea>
+<div class="lbl" style="margin-top:10px">読み込む（貼り付けて「読み込む」。本は追加されます）</div>
+<textarea id="dataIn" rows="3" aria-label="読み込むデータ"></textarea>
+<div class="row" style="margin-top:8px"><button class="ghost" id="impData">読み込む</button><span id="dataMsg" class="hint"></span></div></div>
+</div>
+
+<script>
+const COLORS=['var(--c0)','var(--c1)','var(--c2)','var(--c3)','var(--c4)'];
+const KEY='block-reading-log-v1';
+let uid=0;const nid=p=>p+(Date.now().toString(36))+(uid++);
+let S={title:'',blocks:[],boxes:[1,2,3].map(n=>({id:nid('b'),name:'箱'+n,point:'',explain:''}))};
+let linkSrc=null,dragId=null;
+let LIB={cur:'',list:[]};const bk=id=>'brl-book-'+id;
+const newState=()=>({title:'',blocks:[],boxes:[1,2,3].map(n=>({id:nid('b'),name:'箱'+n,point:'',explain:''}))});
+function normS(){S.labels=S.labels||{};S.dirs=S.dirs||{};S.labelSet=S.labelSet||['理由','例','反対','原因','結果','対比','似ている','補足','きっかけ','手段'];S.view=S.view||'quick';S.oneLine=S.oneLine||'';S.done=S.done||{};S.mode=S.mode||'log';S.conclusion=S.conclusion||'';S.summary=S.summary||'';S.cur=S.cur||''}
+function loadLib(){
+  try{const r=localStorage.getItem('brl-index');if(r)LIB=JSON.parse(r)}catch(e){}
+  if(!LIB.list||!LIB.list.length){
+    let old=null;try{const r=localStorage.getItem(KEY);if(r)old=JSON.parse(r)}catch(e){}
+    const id=nid('bk');LIB={cur:id,list:[{id,title:''}]};
+    if(old&&old.boxes&&old.blocks)S=old;
+  }else{
+    try{const r=localStorage.getItem(bk(LIB.cur));if(r){const d=JSON.parse(r);if(d&&d.boxes&&d.blocks)S=d}}catch(e){}
+  }
+}
+loadLib();
+S.labels=S.labels||{};S.dirs=S.dirs||{};S.labelSet=S.labelSet||['理由','例','反対','原因','結果','対比','似ている','補足','きっかけ','手段'];S.view=S.view||'quick';S.oneLine=S.oneLine||'';S.done=S.done||{};S.mode=S.mode||'log';S.conclusion=S.conclusion||'';S.summary=S.summary||'';
+const T={memo:['📎','メモ'],insight:['💡','気づき'],use:['🧰','使い道'],goal:['🎯','目標'],exp:['🕰️','経験'],self:['🙋','自分ごと'],abs:['🧩','抽象'],deep:['🔍','深掘り']};
+const tp=b=>T[b.type]?b.type:'memo';
+const $=id=>document.getElementById(id);
+const saveLib=()=>{try{localStorage.setItem('brl-index',JSON.stringify(LIB))}catch(e){}};
+const save=()=>{try{localStorage.setItem(bk(LIB.cur),JSON.stringify(S));const e=LIB.list.find(x=>x.id===LIB.cur);if(e)e.title=S.title;saveLib()}catch(e){}};
+const bx=id=>S.boxes.find(b=>b.id===id);
+const blk=id=>S.blocks.find(b=>b.id===id);
+const short=t=>t.length>14?t.slice(0,14)+'…':t;
+
+function blockEl(b){
+  const box=bx(b.box);const i=S.boxes.indexOf(box);
+  const d=document.createElement('div');d.className='blk'+(linkSrc===b.id?' src':'');d.draggable=true;
+  if(box)d.style.setProperty('--bc',COLORS[i%5]);
+  d.addEventListener('dragstart',e=>{dragId=b.id;e.dataTransfer.setData('text/plain',b.id)});
+  const t=document.createElement('div');t.textContent=T[tp(b)][0]+' '+b.text;d.appendChild(t);
+  const tools=document.createElement('div');tools.className='tools';
+  const sel=document.createElement('select');sel.setAttribute('aria-label','箱へ移動');
+  const o0=new Option('箱へ…','');sel.add(o0);
+  sel.add(new Option('未整理','__pool'));
+  S.boxes.forEach(x=>sel.add(new Option(x.name,x.id)));
+  sel.onchange=()=>{if(!sel.value)return;b.box=sel.value==='__pool'?'':sel.value;render()};
+  const lk=document.createElement('button');lk.className='ghost lk';lk.textContent='🔗';lk.title='つなげる';
+  lk.onclick=()=>linkTo(b);
+  const del=document.createElement('button');del.className='ghost';del.textContent='削除';
+  del.onclick=()=>{S.blocks=S.blocks.filter(x=>x.id!==b.id);S.blocks.forEach(x=>x.links=x.links.filter(l=>l!==b.id));render()};
+  tools.append(sel,lk,del);
+  b.links.forEach(l=>{const o=blk(l);if(o){const c=document.createElement('span');c.className='chip';c.textContent=(S.dirs[pk(b.id,o.id)]===b.id?'→ ':S.dirs[pk(b.id,o.id)]===o.id?'← ':'↔ ')+(labOf(b.id,o.id)?labOf(b.id,o.id)+'：':'')+short(o.text);tools.appendChild(c)}});
+  d.appendChild(tools);return d;
+}
+function wireDrop(el,boxId){
+  el.addEventListener('dragover',e=>{e.preventDefault();el.closest('.box')?.classList.add('over')});
+  el.addEventListener('dragleave',()=>el.closest('.box')?.classList.remove('over'));
+  el.addEventListener('drop',e=>{e.preventDefault();const b=blk(dragId||e.dataTransfer.getData('text/plain'));if(b){b.box=boxId;render()}});
+}
+function render(){
+  renderBooks();
+  document.body.classList.toggle('quick',S.view==='quick');
+  const pool=$('pool');pool.innerHTML='';wireDrop(pool,'');
+  const loose=S.blocks.filter(b=>!bx(b.box));
+  if(!loose.length){const p=document.createElement('div');p.className='empty';p.textContent='まだ未整理のブロックはありません。';pool.appendChild(p)}
+  loose.forEach(b=>pool.appendChild(blockEl(b)));
+  const wrap=$('boxes');wrap.innerHTML='';
+  S.boxes.forEach((x,i)=>{
+    const d=document.createElement('div');d.className='box';d.style.setProperty('--bc',COLORS[i%5]);
+    const n=document.createElement('input');n.className='name';n.value=x.name;n.setAttribute('aria-label','箱の名前');
+    n.oninput=()=>{x.name=n.value;save();md()};n.onchange=render;
+    const drop=document.createElement('div');drop.className='drop';wireDrop(drop,x.id);
+    const mine=S.blocks.filter(b=>b.box===x.id);
+    if(!mine.length){const p=document.createElement('div');p.className='empty';p.textContent='ここにブロックを置く';drop.appendChild(p)}
+    mine.forEach(b=>drop.appendChild(blockEl(b)));
+    const l1=document.createElement('div');l1.className='lbl';l1.textContent='要点（一言で）';
+    const pt=document.createElement('input');pt.value=x.point;pt.oninput=()=>{x.point=pt.value;save();md()};
+    const l2=document.createElement('div');l2.className='lbl';l2.textContent='自分の言葉で説明';
+    const ex=document.createElement('textarea');ex.rows=3;ex.value=x.explain;ex.oninput=()=>{x.explain=ex.value;save();md()};
+    d.append(n,drop,l1,pt,l2,ex);wrap.appendChild(d);
+  });
+  renderQs();renderBoard();$('addBox').disabled=S.boxes.length>=5;$('delBox').disabled=S.boxes.length<=1;
+  save();md();
+}
+function mdLog(){
+  const L=[];const t=S.title.trim();
+  L.push('# '+(t||'読書ログ'),'');
+  S.boxes.forEach(x=>{
+    const mine=S.blocks.filter(b=>b.box===x.id);
+    L.push('## '+(x.name||'無題'),'');
+    if(x.point.trim())L.push('**要点：** '+x.point.trim(),'');
+    if(x.explain.trim())L.push(x.explain.trim(),'');
+    if(mine.length){L.push('<details><summary>集めたメモ</summary>','');mine.forEach(b=>L.push('- '+T[tp(b)][0]+' '+b.text.replace(/\n+/g,' ')));L.push('','</details>','')}
+  });
+  const pairs=[];S.blocks.forEach(a=>a.links.forEach(l=>{if(a.id<l){const b=blk(l);if(b)pairs.push([a,b])}}));
+  if(pairs.length){L.push('## つながり','');pairs.forEach(([a,b])=>{const [f,t,m]=arr(a,b);L.push('- 「'+short(f.text)+'」 '+m+' 「'+short(t.text)+'」'+lsuf(a,b))});L.push('')}
+  const loose=S.blocks.filter(b=>!bx(b.box));
+  if(loose.length){L.push('## 未整理','');loose.forEach(b=>L.push('- '+T[tp(b)][0]+' '+b.text.replace(/\n+/g,' ')));L.push('')}
+  return L.join('\n');
+}
+function md(){
+  const w=[];
+  document.body.classList.toggle('quick',S.view==='quick');
+  [...$('viewTabs').children].forEach(x=>x.classList.toggle('on',x.dataset.v===S.view));
+  const obs=S.view!=='quick'&&S.mode==='obs';
+  $('md').style.display=obs?'none':'block';$('notes').style.display=obs?'block':'none';$('copy').parentElement.style.display=obs?'none':'flex';
+  if(obs)renderNotes();else $('md').value=S.view==='quick'?mdQuick():S.mode==='art'?mdArt(w):mdLog();
+  $('warn').textContent=w.join(' ');
+  $('art').style.display=S.view!=='quick'&&S.mode==='art'?'block':'none';
+  [...$('tabs').children].forEach(x=>x.classList.toggle('on',x.dataset.m===S.mode));
+}
+function mdQuick(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  const L=['# '+(S.title.trim()||'読書ログ'),'','> '+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()),''];
+  if(S.oneLine.trim())L.push('**一言：** '+S.oneLine.trim(),'');
+  const loose=S.blocks.filter(b=>!bx(b.box));
+  if(loose.length){L.push('## メモ','');loose.forEach(b=>L.push('- '+T[tp(b)][0]+' '+b.text.replace(/\n+/g,' ')));L.push('')}
+  return L.join('\n');
+}
+const labelList=()=>S.labelSet;
+const NS='http://www.w3.org/2000/svg';
+const pk=(a,b)=>[a,b].sort().join('|');
+const labOf=(a,b)=>S.labels[pk(a,b)]||'';
+const lsuf=(a,b)=>{const l=labOf(a.id,b.id);return l?'（'+l+'）':''};
+let cards={};
+function linkTo(b){
+  if(!linkSrc){linkSrc=b.id}
+  else if(linkSrc===b.id){linkSrc=null}
+  else{const a=blk(linkSrc);
+    if(a.links.includes(b.id)){a.links=a.links.filter(x=>x!==b.id);b.links=b.links.filter(x=>x!==a.id);delete S.labels[pk(a.id,b.id)];delete S.dirs[pk(a.id,b.id)]}
+    else{a.links.push(b.id);b.links.push(a.id)}
+    linkSrc=null}
+  render();
+}
+const arr=(a,b)=>{const d=S.dirs[pk(a.id,b.id)];return d===a.id?[a,b,'→']:d===b.id?[b,a,'→']:[a,b,'↔']};
+function arrow(svg,f,t){
+  const cf=cards[f.id],ct=cards[t.id];
+  const fx=f.x+cf.offsetWidth/2,fy=f.y+cf.offsetHeight/2,tx=t.x+ct.offsetWidth/2,ty=t.y+ct.offsetHeight/2;
+  const dx=tx-fx,dy=ty-fy,L=Math.hypot(dx,dy)||1;
+  const s=Math.min(dx?(ct.offsetWidth/2+3)/Math.abs(dx):1e9,dy?(ct.offsetHeight/2+3)/Math.abs(dy):1e9);
+  const px=tx-dx*s,py=ty-dy*s,ux=dx/L,uy=dy/L;
+  const p=document.createElementNS(NS,'polygon');
+  p.setAttribute('points',px+','+py+' '+(px-ux*12-uy*6)+','+(py-uy*12+ux*6)+' '+(px-ux*12+uy*6)+','+(py-uy*12-ux*6));
+  p.setAttribute('style','fill:var(--sub)');svg.appendChild(p);
+}
+function drawLines(){
+  const el=$('board'),svg=el.querySelector('svg.bl');if(!svg)return;
+  svg.innerHTML='';el.querySelectorAll('.ll').forEach(x=>x.remove());
+  const seen=new Set();
+  S.blocks.forEach(a=>a.links.forEach(id=>{
+    const k=pk(a.id,id);if(seen.has(k))return;seen.add(k);
+    const b=blk(id),ca=cards[a.id],cb=cards[id];if(!b||!ca||!cb)return;
+    const x1=a.x+ca.offsetWidth/2,y1=a.y+ca.offsetHeight/2,x2=b.x+cb.offsetWidth/2,y2=b.y+cb.offsetHeight/2;
+    const ln=document.createElementNS(NS,'line');
+    ln.setAttribute('x1',x1);ln.setAttribute('y1',y1);ln.setAttribute('x2',x2);ln.setAttribute('y2',y2);svg.appendChild(ln);
+    const dr=S.dirs[k],to=dr===a.id?b:dr===b.id?a:null;
+    if(to)arrow(svg,to===b?a:b,to);
+    const ch=document.createElement('div');ch.className='ll';
+    ch.style.left=(x1+x2)/2+'px';ch.style.top=(y1+y2)/2+'px';
+    const cur=labOf(a.id,id),sl=document.createElement('select');sl.setAttribute('aria-label','線のラベル');
+    sl.add(new Option('—',''));
+    (cur&&!labelList().includes(cur)?labelList().concat([cur]):labelList()).forEach(l=>sl.add(new Option(l,l)));
+    sl.value=cur;
+    sl.onchange=()=>{if(sl.value)S.labels[k]=sl.value;else delete S.labels[k];save();render()};
+    const db=document.createElement('button');db.className='ghost';db.textContent=to?'▶':'↔';db.setAttribute('aria-label','向き');
+    db.onclick=()=>{if(!S.dirs[k])S.dirs[k]=a.id;else if(S.dirs[k]===a.id)S.dirs[k]=b.id;else delete S.dirs[k];save();render()};
+    ch.append(sl,db);el.appendChild(ch);
+  }));
+}
+function renderBoard(){
+  const el=$('board');el.innerHTML='';cards={};
+  const svg=document.createElementNS(NS,'svg');svg.setAttribute('class','bl');el.appendChild(svg);
+  if(!S.blocks.length){const p=document.createElement('div');p.className='empty';p.style.padding='12px';p.textContent='ブロックを集めると、ここにカードとして並びます。';el.appendChild(p);return}
+  S.blocks.forEach((b,i)=>{
+    if(b.x==null){b.x=16+(i%4)*210;b.y=16+Math.floor(i/4)*96}
+    const box=bx(b.box),bi=S.boxes.indexOf(box);
+    const c=document.createElement('div');c.className='bc'+(linkSrc===b.id?' src':'');
+    c.style.left=b.x+'px';c.style.top=b.y+'px';c.style.setProperty('--bc',box?COLORS[bi%5]:'var(--cn)');
+    const t=document.createElement('div');t.className='bt';t.textContent=T[tp(b)][0]+' '+b.text;
+    const lb=document.createElement('button');lb.className='ghost';lb.textContent='🔗';lb.setAttribute('aria-label','つなげる');
+    lb.onpointerdown=e=>e.stopPropagation();lb.onclick=()=>linkTo(b);
+    c.append(t,lb);
+    c.onpointerdown=e=>{
+      const sx=e.clientX,sy=e.clientY,ox=b.x,oy=b.y;c.setPointerCapture(e.pointerId);
+      c.onpointermove=ev=>{b.x=Math.max(0,ox+ev.clientX-sx);b.y=Math.max(0,oy+ev.clientY-sy);c.style.left=b.x+'px';c.style.top=b.y+'px';drawLines()};
+      c.onpointerup=()=>{c.onpointermove=null;c.onpointerup=null;save()};
+    };
+    el.appendChild(c);cards[b.id]=c;
+  });
+  drawLines();
+}
+const dq=s=>'"'+s+'"';
+const safe=s=>{const r=[...(s||'')].filter(c=>!'/\\:*?"<>|[]#^'.includes(c)).join('').trim();return r||'無題'};
+const yl=(k,a)=>a.length?k+':\n'+a.map(x=>'  - '+dq(x)).join('\n'):k+': []';
+function ds(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
+function obsNotes(){
+  const nm=safe(S.title),ttl=S.title.trim()||'無題の本',d=ds(),W=n=>'[['+n+']]',one=s=>s.replace(/\n+/g,' ');
+  const ONB='読書ノート_'+nm,OMEMO='読書メモ_'+nm,OLOG='制作ログ_'+nm,OCON='コンテンツ_'+nm;
+  const bl=f=>S.blocks.filter(f);
+  const memos=bl(b=>tp(b)==='memo'),goals=bl(b=>tp(b)==='goal'),exps=bl(b=>tp(b)==='exp'),uses=bl(b=>tp(b)==='use'||tp(b)==='self'),abss=bl(b=>tp(b)==='abs'),deeps=bl(b=>tp(b)==='deep');
+  const kbox=S.boxes.filter(x=>x.point.trim()||x.explain.trim()||S.blocks.some(b=>b.box===x.id));
+  const KN=x=>'知識ノート_'+safe(x.name);
+  const hasMemo=memos.length>0||S.oneLine.trim()!=='';
+  const pairs=[];S.blocks.forEach(a=>a.links.forEach(l=>{if(a.id<l){const b=blk(l);if(b)pairs.push([a,b])}}));
+  const hasLog=goals.length+exps.length+uses.length+abss.length+deeps.length+pairs.length>0;
+  const hasCon=S.conclusion.trim()!==''||S.summary.trim()!==''||kbox.length>0;
+  const fm=o=>'---\n'+o.join('\n')+'\n---\n\n';
+  const src=hasMemo?W(OMEMO):W(ONB);
+  const out=[];
+  out.push({name:ONB,text:fm(['type: 読書ノート','status: 読書中','created: '+dq(d),'updated: '+dq(d),'tags:','  - 読書',yl('reading_notes',hasMemo?[W(OMEMO)]:[]),yl('knowledge_notes',kbox.map(x=>W(KN(x)))),yl('production_logs',hasLog?[W(OLOG)]:[]),yl('outputs',hasCon?[W(OCON)]:[])])+'# '+ttl+'\n\n'+[hasMemo?'## 02｜読書メモ一覧\n- '+W(OMEMO):'',kbox.length?'## 03｜この本から得た知識\n'+kbox.map(x=>'- '+W(KN(x))).join('\n'):'',hasLog?'## 04｜制作ログ\n- '+W(OLOG):'',hasCon?'## 05｜コンテンツ\n- '+W(OCON):''].filter(Boolean).join('\n\n')+'\n'});
+  if(hasMemo){
+    const L=['## 01｜気になった情報・Highlight',''];
+    if(memos.length)memos.forEach(b=>L.push('> '+one(b.text),''));else L.push('>','');
+    if(S.oneLine.trim())L.push('## 03｜自分なりの理解','','- 一言で表すと：'+S.oneLine.trim(),'');
+    if(kbox.length)L.push('## 06｜次につなげる','','- 知識ノート候補：'+kbox.map(x=>W(KN(x))).join('、'),'');
+    L.push('## 関連リンク','','- 読書ノート：'+W(ONB));
+    out.push({name:OMEMO,text:fm(['type: 読書メモ','status: 記録中','created: '+dq(d),'book: '+dq(W(ONB)),'tags:','  - 読書メモ'])+'# '+OMEMO+'\n\n'+L.join('\n')+'\n'});
+  }
+  kbox.forEach(x=>{
+    const mine=S.blocks.filter(b=>b.box===x.id);
+    const info=mine.filter(b=>tp(b)==='memo'||tp(b)==='insight'),use=mine.filter(b=>tp(b)==='use'),ab=mine.filter(b=>tp(b)==='abs'),dp=mine.filter(b=>tp(b)==='deep');
+    const rel=new Map();
+    mine.forEach(b=>b.links.forEach(l=>{const o=blk(l),y=o&&bx(o.box);if(y&&y!==x&&!rel.has(y.id))rel.set(y.id,{y,lab:labOf(b.id,l)})}));
+    const L=[];
+    if(x.point.trim())L.push('## 01｜この知識は何か？','','- 一言で説明：'+x.point.trim(),'');
+    if(info.length)L.push('## 02｜具体的な情報','',...info.map(b=>'- '+one(b.text)),'');
+    if(ab.length)L.push('## 03｜抽象化・本質','',...ab.map(b=>'- '+one(b.text)),'');
+    if(x.explain.trim())L.push('## 04｜自分なりの理解','','- 自分の言葉で説明：'+x.explain.trim(),'');
+    if(rel.size||dp.length)L.push('## 05｜横展開・縦展開','',...[...rel.values()].map(r=>'- 横展開：'+W(KN(r.y))+(r.lab?'（'+r.lab+'）':'')),...dp.map(b=>'- 縦展開：'+one(b.text)),'');
+    if(use.length)L.push('## 06｜活用方法','',...use.map(b=>'- '+one(b.text)),'');
+    L.push('## 関連リンク','','- 情報源：'+src);
+    out.push({name:KN(x),text:fm(['type: 知識ノート','status: 育成中','created: '+dq(d),'updated: '+dq(d),'tags:','  - 知識','  - 概念',yl('sources',[src]),yl('related_knowledge',[...rel.values()].map(r=>W(KN(r.y)))),yl('related_production',hasLog?[W(OLOG)]:[])])+'# '+x.name+'\n\n'+L.join('\n')+'\n'});
+  });
+  if(hasLog){
+    const L=[];
+    if(goals.length)L.push('## 01｜制作のきっかけ','',...goals.map(b=>'- 目標：'+one(b.text)),'');
+    const mat=[...kbox.map(x=>'- 知識ノート：'+W(KN(x))),...exps.map(b=>'- 自分の経験：'+one(b.text))];
+    if(mat.length)L.push('## 02｜素材・情報','',...mat,'');
+    if(uses.length)L.push('## 03｜具体化','',...uses.map(b=>'- 具体例：'+one(b.text)),'');
+    if(abss.length)L.push('## 04｜抽象化','',...abss.map(b=>'- 抽象：'+one(b.text)),'');
+    if(pairs.length)L.push('## 05｜横展開','',...pairs.map(([a,b])=>{const [f,t,m]=arr(a,b);return '- 「'+short(f.text)+'」 '+m+' 「'+short(t.text)+'」'+lsuf(a,b)}),'');
+    if(deeps.length)L.push('## 06｜縦展開','',...deeps.map(b=>'- 深掘り：'+one(b.text)),'');
+    if(S.conclusion.trim())L.push('## 08｜自分なりの結論','','- 分かったこと：'+S.conclusion.trim(),'');
+    L.push('## 関連リンク','','- 読書ノート：'+W(ONB));
+    out.push({name:OLOG,text:fm(['type: 制作ログ','status: アイデア','created: '+dq(d),'updated: '+dq(d),'theme: '+dq(nm),'tags:','  - 制作ログ',yl('sources',[src]),yl('related_knowledge',kbox.map(x=>W(KN(x)))),yl('outputs',hasCon?[W(OCON)]:[])])+'# '+OLOG+'\n\n'+L.join('\n')+'\n'});
+  }
+  if(hasCon){
+    const L=[];
+    if(S.conclusion.trim())L.push('## 02｜伝えたいこと','','- 中心となる主張：'+S.conclusion.trim(),'');
+    if(kbox.length)L.push('## 03｜素材集め','',...kbox.map(x=>'- 参考にする知識ノート：'+W(KN(x))),'');
+    const body=['1. 結論：'+S.conclusion.trim(),'2. 根拠：'];
+    kbox.forEach(x=>{const ex=exOf(x);body.push('   - '+(x.point.trim()||x.name)+(ex.length?'（具体例：'+ex.map(b=>one(b.text)).join('／')+'）':''))});
+    body.push('3. まとめ：'+S.summary.trim());
+    L.push('## 04｜記事の骨格','',...body,'','## 関連リンク','','- 読書ノート：'+W(ONB));
+    out.push({name:OCON,text:fm(['type: コンテンツ','status: アイデア','created: '+dq(d),'updated: '+dq(d),'platform: note','tags:','  - コンテンツ',yl('sources',kbox.map(x=>W(KN(x)))),yl('production_logs',hasLog?[W(OLOG)]:[])])+'# '+ttl+'\n\n'+L.join('\n')+'\n'});
+  }
+  return out;
+}
+function renderNotes(){
+  const el=$('notes');el.innerHTML='';
+  const h=document.createElement('div');h.className='hint';h.style.marginBottom='8px';
+  h.textContent='ノートごとにコピーして、Obsidianの新規ノートに貼り付けます。ファイル名は見出しの名前にしてください。';el.appendChild(h);
+  if(!S.blocks.length){const p=document.createElement('div');p.className='empty';p.textContent='ブロックを集めると、ノートが作られます。';el.appendChild(p);return}
+  obsNotes().forEach(n=>{
+    const c=document.createElement('div');c.className='nc';
+    const r=document.createElement('div');r.className='row';r.style.cssText='justify-content:space-between;align-items:center';
+    const t=document.createElement('strong');t.textContent=n.name+'.md';
+    const b=document.createElement('button');b.className='ghost';b.textContent='コピー';
+    const ta=document.createElement('textarea');ta.readOnly=true;ta.value=n.text;ta.rows=Math.min(14,n.text.split('\n').length+1);
+    b.onclick=async()=>{let ok=false;try{await navigator.clipboard.writeText(ta.value);ok=true}catch(e){ta.select();try{ok=document.execCommand('copy')}catch(_){}}b.textContent=ok?'コピーしました':'選択したので手動でコピー';setTimeout(()=>b.textContent='コピー',2000)};
+    r.append(t,b);c.append(r,ta);el.appendChild(c);
+  });
+}
+function exOf(x){
+  const ok=b=>['use','exp','self'].includes(tp(b));
+  const mine=S.blocks.filter(b=>b.box===x.id);
+  const set=new Set(mine.filter(ok));
+  mine.forEach(b=>b.links.forEach(l=>{const o=blk(l);if(o&&ok(o))set.add(o)}));
+  return [...set];
+}
+function mdArt(w){
+  const L=['# '+(S.title.trim()||'無題の記事'),''];
+  if(!S.conclusion.trim())w.push('結論が未入力です。');
+  L.push('## 結論','',S.conclusion.trim()||'（結論を書く）','','## 根拠','');
+  S.boxes.forEach(x=>{
+    if(!x.point.trim()&&!x.explain.trim()&&!S.blocks.some(b=>b.box===x.id))return;
+    const ex=exOf(x);
+    L.push('### '+(x.point.trim()||x.name),'');
+    if(x.explain.trim())L.push(x.explain.trim(),'');
+    if(ex.length){L.push('具体例：');ex.forEach(b=>L.push('- '+T[tp(b)][0]+' '+b.text.replace(/\n+/g,' ')));L.push('')}
+    else{L.push('（具体例なし）','');w.push('「'+x.name+'」に具体例がありません。')}
+  });
+  L.push('## まとめ','',S.summary.trim()||'（まとめを書く）','');
+  return L.join('\n');
+}
+const Q=[
+ {id:'common',t:'この話の共通点は？',type:'abs',box:1,ok:c=>c.n>=2},
+ {id:'pattern',t:'共通するパターンは？',type:'abs',box:1,ok:c=>c.n>=2},
+ {id:'law',t:'法則・原理と言えるものは？',type:'abs',box:1,ok:c=>c.n>=2},
+ {id:'essence',t:'本質は？',type:'abs',box:1,ok:c=>c.n>=2},
+ {id:'what',t:'つまりなんの話？',dest:'point',box:1,ok:c=>c.n>=2&&!c.x.point.trim()},
+ {id:'when',t:'どういうときに使える？',type:'use',box:1,ok:c=>!!c.x.point.trim()},
+ {id:'who',t:'どんな人に役立つ？',type:'use',box:1,ok:c=>!!c.x.point.trim()},
+ {id:'ex',t:'例えば、何に使える？',type:'use',box:1,ok:c=>!!c.x.point.trim()},
+ {id:'why',t:'なぜそうなる？',type:'deep',box:1,ok:c=>!!c.x.point.trim()},
+ {id:'bg',t:'その背景は？',type:'deep',box:1,ok:c=>!!c.x.point.trim()},
+ {id:'mech',t:'仕組みは？',type:'deep',box:1,ok:c=>!!c.x.point.trim()},
+ {id:'deeper',t:'さらに深掘りすると？',type:'deep',box:1,ok:c=>!!c.x.point.trim()},
+ {id:'self',t:'自分だったらどう使う？',type:'self',ok:c=>c.filled>=2},
+ {id:'goal',t:'今思う目標はある？ それに使える内容はあった？',type:'goal',ok:c=>c.filled>=2},
+ {id:'exp',t:'今までの経験で、つながる何かはあった？',type:'exp',ok:c=>c.filled>=2},
+ {id:'concl',t:'記事にするとしたら、どんな結論になる？',dest:'conclusion',ok:c=>c.pointed>=2&&!S.conclusion.trim()},
+ {id:'summ',t:'改めて、まとめると？',dest:'summary',ok:c=>!!S.conclusion.trim()&&!S.summary.trim()}
+];
+const DN={point:'要点',conclusion:'結論（記事）',summary:'まとめ（記事）'};
+const D={};
+function apply(q,x,v){
+  if(q.dest==='point'){x.point=x.point.trim()?x.point+' / '+v:v;return}
+  if(q.dest){S[q.dest]=v;$('concl').value=S.conclusion;$('summ').value=S.summary;return}
+  S.blocks.push({id:nid('k'),text:v,type:q.type,box:x?x.id:'',links:[]});
+}
+function renderQs(){
+  const el=$('qs');el.innerHTML='';
+  const filled=S.boxes.filter(x=>S.blocks.some(b=>b.box===x.id)).length;
+  const pointed=S.boxes.filter(x=>x.point.trim()).length;
+  const list=[];
+  S.boxes.forEach(x=>{const n=S.blocks.filter(b=>b.box===x.id).length;
+    Q.filter(q=>q.box).forEach(q=>{const key=q.id+':'+x.id;if(!S.done[key]&&q.ok({x,n,filled,pointed}))list.push({q,x,key})})});
+  Q.filter(q=>!q.box).forEach(q=>{const key=q.id+':g';if(!S.done[key]&&q.ok({x:null,n:0,filled,pointed}))list.push({q,x:null,key})});
+  if(!list.length){const p=document.createElement('div');p.className='empty';p.textContent='いまの問いはありません。ブロックを集めて箱に入れると、問いが出ます。';el.appendChild(p);return}
+  const cur=list.find(i=>i.key===S.cur);
+  if(!cur)S.cur='';
+  const bar=document.createElement('div');bar.className='row';bar.style.marginBottom='6px';
+  const dr=document.createElement('button');dr.textContent='🎲 問いを1つ引く';
+  dr.onclick=()=>{const pool=list.filter(i=>i.key!==S.cur);const p=pool.length?pool:list;S.cur=p[Math.floor(Math.random()*p.length)].key;render()};
+  const sel=document.createElement('select');sel.style.flex='1';sel.setAttribute('aria-label','問いを選ぶ');
+  sel.add(new Option('問いを選ぶ…',''));
+  list.forEach(i=>sel.add(new Option((i.x?'['+i.x.name+'] ':'')+i.q.t,i.key)));
+  sel.onchange=()=>{if(sel.value){S.cur=sel.value;render()}};
+  bar.append(dr,sel);el.appendChild(bar);
+  const sh=document.createElement('div');sh.className='hint';sh.textContent='引ける問い：'+list.length+'件';el.appendChild(sh);
+  (cur?[cur]:[]).forEach(({q,x,key})=>{
+    const d=document.createElement('div');d.className='qc';
+    const s=document.createElement('div');s.className='qs';
+    s.textContent=(x?'箱「'+x.name+'」':'全体')+' → '+(q.dest?DN[q.dest]:T[q.type][0]+' '+T[q.type][1]);
+    const t=document.createElement('div');t.className='qt';t.textContent=q.t;
+    const ta=document.createElement('textarea');ta.rows=2;ta.value=D[key]||'';ta.oninput=()=>{D[key]=ta.value};
+    const ok=document.createElement('button');ok.textContent=q.dest?'書き込む':'ブロックにする';
+    const sk=document.createElement('button');sk.className='ghost';sk.textContent='今はパス';
+    ok.onclick=()=>{const v=ta.value.trim();if(!v)return;apply(q,x,v);S.done[key]=1;S.cur='';delete D[key];render()};
+    sk.onclick=()=>{S.done[key]=1;S.cur='';render()};
+    const r=document.createElement('div');r.className='row';r.style.marginTop='6px';r.append(ok,sk);
+    d.append(s,t,ta,r);el.appendChild(d);
+  });
+  
+}
+$('addBtn').onclick=()=>{const v=$('newText').value.trim();if(!v)return;
+  const parts=$('split').checked?v.split(/\n+/).map(s=>s.replace(/^\s*(?:[-*・•]|\d+[.)．])\s*/,'').trim()).filter(Boolean):[v];
+  parts.forEach(t=>S.blocks.push({id:nid('k'),text:t,type:$('newType').value,box:'',links:[]}));
+  $('addMsg').textContent=parts.length+'個のブロックを追加しました';$('newText').value='';render();$('newText').focus()};
+$('title').value=S.title;$('title').oninput=e=>{S.title=e.target.value;save();md();renderBooks()};
+$('addBox').onclick=()=>{if(S.boxes.length<5){S.boxes.push({id:nid('b'),name:'箱'+(S.boxes.length+1),point:'',explain:''});render()}};
+$('delBox').onclick=()=>{if(S.boxes.length>1){const x=S.boxes.pop();S.blocks.forEach(b=>{if(b.box===x.id)b.box=''});render()}};
+$('copy').onclick=async()=>{const m=$('md');let ok=false;
+  try{await navigator.clipboard.writeText(m.value);ok=true}catch(e){m.select();try{ok=document.execCommand('copy')}catch(_){}}
+  $('msg').textContent=ok?'コピーしました':'選択したので、手動でコピーしてください';setTimeout(()=>$('msg').textContent='',2500)};
+Object.entries(T).forEach(([k,v])=>$('newType').add(new Option(v[0]+' '+v[1],k)));
+[['log','ログ'],['art','記事'],['obs','Obsidian']].forEach(([m,n])=>{const b=document.createElement('button');b.textContent=n;b.dataset.m=m;b.onclick=()=>{S.mode=m;save();md()};$('tabs').appendChild(b)});
+$('concl').value=S.conclusion;$('summ').value=S.summary;
+$('concl').oninput=e=>{S.conclusion=e.target.value;save();md()};
+$('summ').oninput=e=>{S.summary=e.target.value;save();md()};
+$('resetQ').onclick=()=>{S.done={};S.cur='';render()};
+$('labelSet').value=S.labelSet.join('、');
+$('labelSet').onchange=e=>{const v=e.target.value.split(/[、,，]/).map(s=>s.trim()).filter(Boolean);if(v.length)S.labelSet=v;e.target.value=S.labelSet.join('、');save();render()};
+[['quick','気軽'],['deep','じっくり']].forEach(([m,n])=>{const b=document.createElement('button');b.textContent=n;b.dataset.v=m;b.onclick=()=>{S.view=m;save();render()};$('viewTabs').appendChild(b)});
+$('oneLine').value=S.oneLine;$('oneLine').oninput=e=>{S.oneLine=e.target.value;save();md()};
+$('newText').onkeydown=e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')$('addBtn').click()};
+function renderBooks(){
+  const sel=$('bookSel');sel.innerHTML='';
+  LIB.list.forEach(b=>sel.add(new Option((b.title||'').trim()||'無題の本',b.id)));
+  sel.value=LIB.cur;
+}
+function syncInputs(){$('title').value=S.title;$('oneLine').value=S.oneLine;$('concl').value=S.conclusion;$('summ').value=S.summary;$('labelSet').value=S.labelSet.join('、')}
+function openBook(id,skip){
+  if(!skip)save();
+  LIB.cur=id;let d=null;
+  try{const r=localStorage.getItem(bk(id));if(r)d=JSON.parse(r)}catch(e){}
+  S=d&&d.boxes&&d.blocks?d:newState();normS();linkSrc=null;syncInputs();render();
+}
+$('bookSel').onchange=e=>openBook(e.target.value);
+$('newBook').onclick=()=>{
+  save();const v=S.view,id=nid('bk');
+  LIB.list.push({id,title:''});LIB.cur=id;S=newState();normS();S.view=v;linkSrc=null;syncInputs();render();
+};
+let delArm=0;
+$('delBook').onclick=()=>{
+  const b=$('delBook');
+  if(!delArm){delArm=1;b.textContent='もう一度押すと削除';setTimeout(()=>{delArm=0;b.textContent='この本を削除'},3000);return}
+  delArm=0;b.textContent='この本を削除';
+  const id=LIB.cur;try{localStorage.removeItem(bk(id))}catch(e){}
+  LIB.list=LIB.list.filter(x=>x.id!==id);
+  if(!LIB.list.length){const n=nid('bk');LIB.list.push({id:n,title:''});LIB.cur=n;S=newState();normS();linkSrc=null;syncInputs();render();return}
+  openBook(LIB.list[0].id,true);
+};
+function allBooks(){
+  save();
+  return LIB.list.map(b=>{try{const r=localStorage.getItem(bk(b.id));return r?JSON.parse(r):null}catch(e){return null}}).filter(Boolean);
+}
+$('expData').onclick=()=>{$('dataOut').value=JSON.stringify({app:'block-reading-log',version:1,books:allBooks()});$('dataMsg').textContent=''};
+$('expCopy').onclick=async()=>{
+  const m=$('dataOut');if(!m.value)$('expData').click();
+  let ok=false;try{await navigator.clipboard.writeText(m.value);ok=true}catch(e){m.select();try{ok=document.execCommand('copy')}catch(_){}}
+  $('dataMsg').textContent=ok?'コピーしました':'選択したので手動でコピーしてください';
+};
+$('impData').onclick=()=>{
+  let d;try{d=JSON.parse($('dataIn').value)}catch(e){$('dataMsg').textContent='読み込めませんでした。データを確認してください。';return}
+  const bs=d&&d.app==='block-reading-log'&&Array.isArray(d.books)?d.books.filter(b=>b&&b.boxes&&b.blocks):[];
+  if(!bs.length){$('dataMsg').textContent='読み込める本が見つかりませんでした。';return}
+  save();
+  bs.forEach(b=>{const id=nid('bk');try{localStorage.setItem(bk(id),JSON.stringify(b))}catch(e){}LIB.list.push({id,title:b.title||''})});
+  saveLib();$('dataIn').value='';$('dataMsg').textContent=bs.length+'冊を追加しました';renderBooks();
+};
+render();
+</script>
+</body>
+</html>
